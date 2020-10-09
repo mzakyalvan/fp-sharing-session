@@ -3,6 +3,7 @@ package com.tiket.sharing.fp.chain;
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -11,6 +12,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.NONE;
 
 import com.tiket.sharing.fp.chain.RequestInterceptor.InterceptorChain;
+import com.tiket.sharing.fp.model.CustomerProfile;
+import com.tiket.sharing.fp.model.MembershipTier;
 import com.tiket.sharing.fp.model.OrderDetails;
 import com.tiket.sharing.fp.model.OrderIdentifier;
 import com.tiket.sharing.fp.model.OrderRequest;
@@ -39,7 +42,7 @@ class RequestInterceptionTests {
     when(orderTracker.duplicateOrder(any(OrderRequest.class)))
         .then(invocation -> Mono.empty());
 
-    when(orderTracker.activeCount(any(String.class)))
+    when(orderTracker.activeCount(eq("mang.oleh@odading.com")))
         .then(invocation -> Mono.just(1));
 
     StepVerifier.create(interceptorChain.evaluate(ORDER_REQUEST))
@@ -51,15 +54,15 @@ class RequestInterceptionTests {
         .verify(Duration.ofSeconds(5));
 
     verify(orderTracker, times(1)).duplicateOrder(any(OrderRequest.class));
-    verify(orderTracker, times(1)).activeCount(any());
+    verify(orderTracker, times(1)).activeCount(eq("mang.oleh@odading.com"));
   }
 
   @Test
-  void whenActiveOrderCountReached_thenShouldFail() {
+  void whenMacActiveCountReached_thenShouldFail() {
     when(orderTracker.duplicateOrder(any(OrderRequest.class)))
         .then(invocation -> Mono.empty());
 
-    when(orderTracker.activeCount(any(String.class)))
+    when(orderTracker.activeCount(eq("mang.oleh@odading.com")))
         .then(invocation -> Mono.just(5));
 
     StepVerifier.create(interceptorChain.evaluate(ORDER_REQUEST))
@@ -71,7 +74,7 @@ class RequestInterceptionTests {
         .verify(Duration.ofSeconds(5));
 
     verify(orderTracker, times(1)).duplicateOrder(any(OrderRequest.class));
-    verify(orderTracker, times(1)).activeCount(any());
+    verify(orderTracker, times(1)).activeCount(eq("mang.oleh@odading.com"));
   }
 
   @Test
@@ -79,7 +82,7 @@ class RequestInterceptionTests {
     when(orderTracker.duplicateOrder(any(OrderRequest.class)))
         .then(invocation -> Mono.just(OrderIdentifier.by("1234", "ASDQWERTZYU")));
 
-    when(orderTracker.activeCount(any(String.class)))
+    when(orderTracker.activeCount(eq("mang.oleh@odading.com")))
         .then(invocation -> Mono.just(5));
 
     StepVerifier.create(interceptorChain.evaluate(ORDER_REQUEST))
@@ -91,7 +94,7 @@ class RequestInterceptionTests {
         .verify(Duration.ofSeconds(5));
 
     verify(orderTracker, times(1)).duplicateOrder(any(OrderRequest.class));
-    verify(orderTracker, never()).activeCount(any());
+    verify(orderTracker, never()).activeCount(eq("mang.oleh@odading.com"));
   }
 
   @Test
@@ -113,6 +116,12 @@ class RequestInterceptionTests {
   }
 
   private static final OrderRequest ORDER_REQUEST = OrderRequest.builder()
+      .customer(CustomerProfile.builder()
+          .title("Mr").fullName("Mang Oleh")
+          .emailAddress("mang.oleh@odading.com").phoneNumber("6281320123123")
+          .memberTier(MembershipTier.BASIC)
+          .build())
+      // ...
       .build();
 
   private static final OrderDetails ORDER_DETAILS = OrderDetails.builder()

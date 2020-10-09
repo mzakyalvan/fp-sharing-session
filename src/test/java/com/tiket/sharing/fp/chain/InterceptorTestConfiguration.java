@@ -1,10 +1,12 @@
 package com.tiket.sharing.fp.chain;
 
+import static com.tiket.sharing.fp.chain.InterceptorTestConfiguration.DoubleOrderException.doubleOrderError;
+import static com.tiket.sharing.fp.chain.InterceptorTestConfiguration.MaximumOrderException.maximumOrderError;
+
 import com.tiket.sharing.fp.chain.RequestInterceptor.InterceptorChain;
 import com.tiket.sharing.fp.model.OrderIdentifier;
 import com.tiket.sharing.fp.model.OrderRequest;
 import java.util.stream.Collectors;
-import lombok.Getter;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,24 +31,20 @@ class InterceptorTestConfiguration {
   @Bean
   @Order(0)
   RequestInterceptor doubleOrderChecker(CustomerOrderTracker orderTracker) {
-    return (request, chain) -> Mono.just(request)
-        .flatMap(it -> orderTracker.duplicateOrder(it)
-            .flatMap(identifier -> DoubleOrderException.<OrderRequest>doubleOrderError(it, identifier))
-        )
+    return (request, chain) -> orderTracker.duplicateOrder(request)
+        .<OrderRequest>flatMap(identifier -> doubleOrderError(request, identifier))
         .switchIfEmpty(chain.evaluate(request));
   }
 
   @Bean
   @Order(1)
   RequestInterceptor activeCountChecker(CustomerOrderTracker orderTracker) {
-    return (request, chain) -> Mono.just(request)
-        .filterWhen(it -> orderTracker.activeCount("")
-            .map(count -> count < 5))
-        .switchIfEmpty(MaximumOrderException.maximumOrderError(request))
-        .flatMap(chain::evaluate);
+    return (request, chain) -> orderTracker.activeCount(request.getCustomer().getEmailAddress())
+        .filter(count -> count < 5)
+        .switchIfEmpty(maximumOrderError(request))
+        .then(chain.evaluate(request));
   }
 
-  @Getter
   static class DoubleOrderException extends RequestInterceptException {
     private final OrderIdentifier duplicate;
 
@@ -58,9 +56,12 @@ class InterceptorTestConfiguration {
     public static <T> Mono<T> doubleOrderError(OrderRequest request, OrderIdentifier duplicate) {
       return Mono.error(new DoubleOrderException(request, duplicate));
     }
+
+    public OrderIdentifier getDuplicate() {
+      return duplicate;
+    }
   }
 
-  @Getter
   static class MaximumOrderException extends RequestInterceptException {
     public MaximumOrderException(OrderRequest request) {
       super(request, "Maximum allowed order exceeded", null);

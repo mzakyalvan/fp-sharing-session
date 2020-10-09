@@ -18,6 +18,7 @@ import reactor.test.StepVerifier;
 
 /**
  * @author zakyalvan
+ * @see LoyaltyCalculationEngine
  */
 @SpringBootTest(classes = CalculationTestConfiguration.class, webEnvironment = NONE)
 class LoyaltyCalculationEngineTests {
@@ -69,7 +70,7 @@ class LoyaltyCalculationEngineTests {
   @Test
   void whenCalculateForTiketFamily_thenShouldSuccess() {
     when(transactionTracker.firstTransaction(any(CustomerProfile.class)))
-        .thenReturn(true);
+        .thenReturn(false);
 
     StepVerifier
         .create(calculateEngine.calculator(BASIC_INTERNAL_CUSTOMER).calculate(valueOf(10_000)))

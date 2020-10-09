@@ -11,7 +11,8 @@ import reactor.core.publisher.Mono;
  */
 public interface CustomerOrderTracker {
   /**
-   * Check whether given order request already placed.
+   * Check whether given order request already placed, return identifier of previous order
+   * if order considered duplicated.
    *
    * @param orderRequest
    * @return

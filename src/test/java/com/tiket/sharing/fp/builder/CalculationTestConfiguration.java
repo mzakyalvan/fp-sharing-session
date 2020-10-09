@@ -9,7 +9,6 @@ import static java.time.Duration.ofDays;
 import static org.mockito.Mockito.mock;
 import static org.springframework.util.StringUtils.hasText;
 
-import com.tiket.sharing.fp.builder.LoyaltyCalculationEngine.DefaultCalculationEngine;
 import com.tiket.sharing.fp.model.CustomerProfile;
 import java.util.function.Predicate;
 import org.springframework.context.annotation.Bean;
@@ -21,12 +20,23 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 class CalculationTestConfiguration {
 
+
+  /**
+   * Configure {@link LoyaltyCalculationEngine} to be used in our tests.
+   *
+   * Some of you might be wondering, how to make this dynamic, configurable using properties.
+   * By slightly simple refactor, we could use Spring's expression language (SpEL) or Groovy scripting
+   * for that purpose.
+   *
+   * @param transactionTracker
+   * @return
+   */
   @Bean
   LoyaltyCalculationEngine loyaltyCalculationEngine(TransactionTracker transactionTracker) {
     Predicate<CustomerProfile> tiketFamilyMember = customer ->
         hasText(customer.getEmailAddress()) && customer.getEmailAddress().endsWith("@tiket.com");
 
-    return new DefaultCalculationEngine()
+    return LoyaltyCalculationEngine.empty()
         .calculationRule(basicMembership().and(transactionTracker::firstTransaction),
             earningFactor(.02, ofDays(120))
                 .thenAccumulate(constantEarning(75, ofDays(100))))

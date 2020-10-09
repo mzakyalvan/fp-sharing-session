@@ -66,7 +66,7 @@ public interface SupplierBookingAdapter {
           .justOrEmpty(delegates.stream()
               .filter(delegate -> delegate.supports(parameter))
               .findFirst())
-          .switchIfEmpty(Mono.error(new IllegalStateException("Error!")))
+          .switchIfEmpty(BookingException.noAdapterError(parameter))
           .flatMap(delegate -> delegate.create(parameter));
     }
   }

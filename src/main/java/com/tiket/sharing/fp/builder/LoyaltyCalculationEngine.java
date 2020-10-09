@@ -5,6 +5,7 @@ import static com.tiket.sharing.fp.model.MembershipTier.BASIC;
 import static com.tiket.sharing.fp.model.MembershipTier.GOLD;
 import static com.tiket.sharing.fp.model.MembershipTier.PLATINUM;
 import static java.time.Duration.ofDays;
+import static java.util.Comparator.comparing;
 import static java.util.Objects.isNull;
 import static reactor.core.publisher.Mono.fromCallable;
 
@@ -12,11 +13,15 @@ import com.tiket.sharing.fp.model.CustomerProfile;
 import com.tiket.sharing.fp.model.LoyaltyEarning;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import javax.validation.constraints.NotNull;
+import lombok.NoArgsConstructor;
+import org.springframework.core.Ordered;
 import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Mono;
 
@@ -26,6 +31,15 @@ import reactor.core.publisher.Mono;
 @FunctionalInterface
 public interface LoyaltyCalculationEngine {
   LoyaltyCalculator calculator(@NotNull CustomerProfile customer);
+
+  /**
+   * Factory method for creating empty default  {@link LoyaltyCalculationEngine}
+   *
+   * @return
+   */
+  static DefaultCalculationEngine empty() {
+    return new DefaultCalculationEngine();
+  }
 
   @FunctionalInterface
   interface LoyaltyCalculator {
@@ -62,8 +76,12 @@ public interface LoyaltyCalculationEngine {
 
   @Validated
   class DefaultCalculationEngine implements LoyaltyCalculationEngine {
-    private final Map<Predicate<CustomerProfile>, LoyaltyCalculator> calculateRules = new ConcurrentHashMap<>();
+    private final Map<OrderedPredicate<CustomerProfile>, LoyaltyCalculator> calculateRules;
     private double defaultFactor;
+
+    DefaultCalculationEngine() {
+      this.calculateRules = new TreeMap<>(comparing(OrderedPredicate::getOrder));
+    }
 
     @Override
     public LoyaltyCalculator calculator(CustomerProfile customer) {
@@ -75,7 +93,7 @@ public interface LoyaltyCalculationEngine {
     }
 
     public DefaultCalculationEngine calculationRule(Predicate<CustomerProfile> predicate, LoyaltyCalculator calculator) {
-      calculateRules.put(predicate, calculator);
+      calculateRules.put(OrderedPredicate.wrap(predicate, calculateRules.size() + 1), calculator);
       return this;
     }
     public DefaultCalculationEngine defaultFactor(double factor) {
@@ -92,5 +110,29 @@ public interface LoyaltyCalculationEngine {
   }
   static Predicate<CustomerProfile> platinumMembership() {
     return customer -> !isNull(customer.getMemberTier()) && PLATINUM.equals(customer.getMemberTier());
+  }
+
+  class OrderedPredicate<T> implements Predicate<T>, Ordered {
+    private final Predicate<T> delegate;
+    private final int order;
+
+    private OrderedPredicate(Predicate<T> delegate, int order) {
+      this.delegate = delegate;
+      this.order = order;
+    }
+
+    @Override
+    public boolean test(T o) {
+      return delegate.test(o);
+    }
+
+    @Override
+    public int getOrder() {
+      return order;
+    }
+
+    static <T> OrderedPredicate<T> wrap(Predicate<T> predicate, int order) {
+      return new OrderedPredicate<>(predicate, order);
+    }
   }
 }

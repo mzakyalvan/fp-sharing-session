@@ -12,6 +12,7 @@ import lombok.Value;
 @Getter
 @lombok.Builder(builderClassName = "Builder")
 public class BookingDetails {
+  SupplierQualifier supplier;
   CustomerProfile customer;
   List<PassengerProfile> passengers;
   Schedule schedule;

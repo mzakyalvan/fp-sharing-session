@@ -12,7 +12,7 @@
 	<artifactId>functional-sharing</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>functional-sharing</name>
-	<description>Demo project for Spring Boot</description>
+	<description>Functional Programming Design Pattern</description>
 
 	<properties>
 		<java.version>8</java.version>
@@ -65,16 +65,5 @@
 			<version>5.11.1</version>
 			<scope>test</scope>
 		</dependency>
-
 	</dependencies>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-		</plugins>
-	</build>
-
 </project>
